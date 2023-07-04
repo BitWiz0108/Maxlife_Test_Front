@@ -4,24 +4,33 @@ import { useEffect, useState } from "react";
 import { LOADING_GIF } from "@/libs/constants";
 
 const VideoPlayer = (props: any) => {
-  const [loading, setLoading] = useState(true);
+  const [isGlobalLoading, setIsGlobalLoading] = useState(true);
+  const [isVideoLoading, setIsVideoLoading] = useState(true);
 
   const handleVideoLoaded = () => {
-    setLoading(false);
+    setIsGlobalLoading(false);
+    setIsVideoLoading(false);
   };
 
   useEffect(() => {
-    setLoading(true);
+    setIsGlobalLoading(true);
+    setIsVideoLoading(true);
+    setTimeout(() => {
+      setIsGlobalLoading(false);
+    }, 3000);
   }, [props.src]);
 
   return (
     <>
-      {loading && (
-        <img
-          className="absolute left-0 top-0 w-full h-full object-cover opacity-20 z-10"
-          src={LOADING_GIF}
-          alt=""
-        />
+      {isGlobalLoading && <div className="loading"></div>}
+      {isVideoLoading && (
+        <div className="absolute left-0 top-0 w-full h-full flex justify-center items-center bg-black z-10">
+          <img
+            className="w-16 h-16 object-cover"
+            src={LOADING_GIF}
+            alt="Loading"
+          />
+        </div>
       )}
       <video {...props} onLoadedData={handleVideoLoaded} />
     </>

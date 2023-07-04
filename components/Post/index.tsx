@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { twMerge } from "tailwind-merge";
+import Carousel from "react-multi-carousel";
 
 import Heart from "@/components/Icons/Heart";
 import HeartFill from "@/components/Icons/HeartFill";
@@ -10,7 +11,7 @@ import VideoPlayer from "@/components/VideoPlayer";
 
 import { useShareValues } from "@/contexts/contextShareData";
 
-import { bigNumberFormat } from "@/libs/utils";
+import { bigNumberFormat, getUrlFormattedTitle } from "@/libs/utils";
 import {
   FILE_TYPE,
   IMAGE_BLUR_DATA_URL,
@@ -22,21 +23,51 @@ import { IPost } from "@/interfaces/IPost";
 import { DEFAULT_SHAREDATA } from "@/interfaces/IShareData";
 
 type Props = {
+  setRef?: Function | null;
+  index: number;
   post: IPost;
   favorite: Function;
   comment: Function;
   fullscreenView: Function;
 };
 
-const Post = ({ post, favorite, comment, fullscreenView }: Props) => {
+const Post = ({
+  setRef = null,
+  index,
+  post,
+  favorite,
+  comment,
+  fullscreenView,
+}: Props) => {
+  const SINGLE_RESPONSIVENESS = {
+    superLargeDesktop: {
+      breakpoint: { max: 4000, min: 3000 },
+      items: 1,
+    },
+    desktop: {
+      breakpoint: { max: 3000, min: 1368 },
+      items: 1,
+    },
+    tablet: {
+      breakpoint: { max: 1368, min: 925 },
+      items: 1,
+    },
+    mobile: {
+      breakpoint: { max: 925, min: 0 },
+      items: 1,
+    },
+  };
+
+  const ref = useRef<HTMLDivElement>(null);
   const { setIsShareModalVisible, setShareData } = useShareValues();
 
   const [isSeenMore, setIsSeenMore] = useState<boolean>(false);
+  const [lastPosX, setLastPosX] = useState<number>(0);
 
   const onShare = () => {
     setShareData({
       ...DEFAULT_SHAREDATA,
-      url: `${SITE_BASE_URL}/post/${post.id}`,
+      url: `${SITE_BASE_URL}${getUrlFormattedTitle(post, "post")}`,
       title: post.title,
       subject: post.title,
       quote: post.title,
@@ -47,8 +78,17 @@ const Post = ({ post, favorite, comment, fullscreenView }: Props) => {
     setIsShareModalVisible(true);
   };
 
+  useEffect(() => {
+    if (ref && ref.current && setRef) {
+      setRef(ref.current);
+    }
+  }, [ref, setRef]);
+
   return (
-    <div className="w-full flex flex-col justify-start items-start space-y-2 p-3 rounded-lg bg-background">
+    <div
+      ref={ref}
+      className="w-full flex flex-col justify-start items-start space-y-2 p-3 rounded-lg bg-background"
+    >
       <p
         className={twMerge(
           "w-full text-left text-base lg:text-lg font-medium transition-all duration-300 hover:cursor-pointer",
@@ -89,32 +129,55 @@ const Post = ({ post, favorite, comment, fullscreenView }: Props) => {
         )}
       </div>
       <div className="relative w-full">
-        <div
-          className="w-full relative pb-[56.25%] hover:cursor-pointer rounded-md"
-          onClick={() => fullscreenView()}
+        <Carousel
+          ssr
+          partialVisible
+          autoPlay={false}
+          responsive={SINGLE_RESPONSIVENESS}
+          className="w-full"
+          infinite
+          swipeable
+          draggable
+          arrows={post.files.length > 1}
         >
-          {post.type == FILE_TYPE.IMAGE ? (
-            <Image
-              className="absolute inset-0 object-cover object-center w-full h-full rounded-md"
-              src={post.imageCompressed ?? PLACEHOLDER_IMAGE}
-              width={1600}
-              height={900}
-              alt=""
-              placeholder="blur"
-              blurDataURL={IMAGE_BLUR_DATA_URL}
-              priority
-            />
-          ) : (
-            <VideoPlayer
-              loop
-              muted
-              autoPlay
-              playsInline
-              className="absolute inset-0 object-cover object-center w-full h-full rounded-md"
-              src={post.videoCompressed}
-            />
-          )}
-        </div>
+          {post.files.map((file, indexFile) => {
+            return (
+              <div
+                key={indexFile}
+                className="w-full relative pb-[56.25%] hover:cursor-pointer rounded-md overflow-hidden"
+                onMouseDown={(e) => setLastPosX(e.screenX)}
+                onMouseUp={(e) => {
+                  if (Math.abs(e.screenX - lastPosX) < 30) {
+                    fullscreenView(indexFile);
+                  }
+                }}
+              >
+                {file.type == FILE_TYPE.IMAGE ? (
+                  <Image
+                    className="absolute inset-0 object-cover object-center w-full h-full rounded-md pointer-events-none"
+                    src={file.fileCompressed ?? PLACEHOLDER_IMAGE}
+                    width={1600}
+                    height={900}
+                    alt=""
+                    placeholder="blur"
+                    blurDataURL={IMAGE_BLUR_DATA_URL}
+                    priority
+                  />
+                ) : (
+                  <VideoPlayer
+                    loop
+                    muted
+                    autoPlay={false}
+                    playsInline
+                    disablePictureInPicture
+                    className={`absolute inset-0 object-cover object-center w-full h-full rounded-md post-video post-video-${index} pointer-events-none`}
+                    src={file.fileCompressed}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </Carousel>
       </div>
 
       <div className="w-full flex flex-wrap justify-center items-center">

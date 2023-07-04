@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import Image from "next/image";
 import { toast } from "react-toastify";
 import moment from "moment";
+import { twMerge } from "tailwind-merge";
 
 import Layout from "@/components/Layout";
 import ButtonSettings from "@/components/ButtonSettings";
@@ -20,33 +21,44 @@ import ShieldLock from "@/components/Icons/ShieldLock";
 
 import { useAuthValues } from "@/contexts/contextAuth";
 import { useShareValues } from "@/contexts/contextShareData";
+import { useSizeValues } from "@/contexts/contextSize";
 
 import useProfile from "@/hooks/useProfile";
 
 import { checkContainsSpecialCharacters } from "@/libs/utils";
 import {
+  APP_TYPE,
   ASSET_TYPE,
   DATETIME_FORMAT,
   DEFAULT_AVATAR_IMAGE,
   GENDER,
   IMAGE_BLUR_DATA_URL,
+  SYSTEM_TYPE,
 } from "@/libs/constants";
 
 import { DEFAULT_PROFILE } from "@/interfaces/IProfile";
 
 export default function Settings() {
   const router = useRouter();
-  const avatarImageRef = useRef(null);
+  const avatarImageRef = useRef<HTMLInputElement>(null);
 
   const { fetchProfile, updateProfile, fetchLocation, subscribe } =
     useProfile();
-  const { isSignedIn, accessToken, checkAuth, servertime, user, isMembership } =
-    useAuthValues();
+  const {
+    isSignedIn,
+    accessToken,
+    checkAuth,
+    servertime,
+    user,
+    isMembership,
+    isAdmin,
+  } = useAuthValues();
   const {
     audioPlayer,
     isSubscriptionModalVisible,
     setIsSubscriptionModalVisible,
   } = useShareValues();
+  const { isMobile } = useSizeValues();
 
   const [username, setUsername] = useState<string>("");
   const [firstName, setFirstName] = useState<string>("");
@@ -148,7 +160,12 @@ export default function Settings() {
   const fullContent = (
     <>
       <div className="w-full h-screen overflow-x-hidden overflow-y-auto">
-        <div className="relative px-5 pt-16 pb-36 bg-background w-full min-h-screen flex justify-center items-center">
+        <div
+          className={twMerge(
+            "relative px-5 pt-16 bg-background w-full min-h-screen flex justify-center items-center",
+            isMobile ? "pb-[180px]" : "pb-28 lg:pb-36"
+          )}
+        >
           <div className="relative w-full flex flex-col md:w-4/5 xl:w-2/3 p-5 bg-third rounded-lg justify-center items-center">
             <div
               className="absolute p-3 rounded-full top-5 right-5 cursor-pointer text-primary bg-bluePrimary  hover:bg-blueSecondary transition-all duration-300"
@@ -163,8 +180,7 @@ export default function Settings() {
                 onMouseEnter={() => setIsAvatarImageHover(true)}
                 onMouseLeave={() => setIsAvatarImageHover(false)}
                 onClick={() => {
-                  if (avatarImageRef) {
-                    // @ts-ignore
+                  if (avatarImageRef && avatarImageRef.current) {
                     avatarImageRef.current.click();
                   }
                 }}
@@ -207,43 +223,47 @@ export default function Settings() {
               </div>
             </div>
 
-            <div className="relative w-full flex justify-center items-center mb-5">
-              <Switch
-                checked={isSubscribed}
-                setChecked={(flag: boolean) => {
-                  setIsSubScribed(flag);
-                  let planId = null;
-                  if (flag) {
-                    if (user.planStartDate && user.planEndDate) {
-                      if (
-                        moment(servertime).isAfter(
-                          moment(user.planStartDate)
-                        ) &&
-                        moment(servertime).isBefore(moment(user.planEndDate))
-                      ) {
-                        planId = 1;
+            {!isAdmin() && (
+              <div className="relative w-full flex justify-center items-center mb-5">
+                <Switch
+                  checked={isSubscribed}
+                  setChecked={(flag: boolean) => {
+                    setIsSubScribed(flag);
+                    let planId = null;
+                    if (flag) {
+                      if (user.planStartDate && user.planEndDate) {
+                        if (
+                          moment(servertime).isAfter(
+                            moment(user.planStartDate)
+                          ) &&
+                          moment(servertime).isBefore(moment(user.planEndDate))
+                        ) {
+                          planId = 1;
+                        } else {
+                          // Subscription expired user
+                          setIsSubscriptionModalVisible(true);
+                          return;
+                        }
                       } else {
-                        // Subscription expired user
+                        // Newly subscribing user
                         setIsSubscriptionModalVisible(true);
                         return;
                       }
-                    } else {
-                      // Newly subscribing user
-                      setIsSubscriptionModalVisible(true);
-                      return;
                     }
-                  }
 
-                  subscribe(planId).then((value) => {
-                    if (value) {
-                      checkAuth(accessToken);
-                    }
-                  });
-                }}
-                label={`Turn ${isSubscribed ? "off" : "on"} your subscription`}
-                labelPos="top"
-              />
-            </div>
+                    subscribe(planId).then((value) => {
+                      if (value) {
+                        checkAuth(accessToken);
+                      }
+                    });
+                  }}
+                  label={`Turn ${
+                    isSubscribed ? "off" : "on"
+                  } your subscription`}
+                  labelPos="top"
+                />
+              </div>
+            )}
 
             <div className="w-full flex flex-col lg:flex-row mt-5 space-x-0 lg:space-x-5">
               <TextInput
@@ -394,7 +414,9 @@ export default function Settings() {
 
       <AudioControl
         audioPlayer={audioPlayer}
-        onListView={() => router.push("/music")}
+        onListView={() =>
+          router.push(SYSTEM_TYPE == APP_TYPE.CHURCH ? "/audio" : "/music")
+        }
       />
     </>
   );

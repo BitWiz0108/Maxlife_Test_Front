@@ -2,6 +2,7 @@ import { useEffect, useState, KeyboardEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { toast } from "react-toastify";
+import { twMerge } from "tailwind-merge";
 
 import Layout from "@/components/Layout";
 import PoweredBy from "@/components/PoweredBy";
@@ -12,6 +13,7 @@ import Loading from "@/components/Loading";
 
 import { useAuthValues } from "@/contexts/contextAuth";
 import { useShareValues } from "@/contexts/contextShareData";
+import { useSizeValues } from "@/contexts/contextSize";
 
 import useHomepage from "@/hooks/useHomepage";
 
@@ -21,6 +23,7 @@ export default function ResetPassword() {
 
   const { isLoading, resetPassword } = useAuthValues();
   const { artist } = useShareValues();
+  const { isMobile } = useSizeValues();
   const { fetchPageContent } = useHomepage();
 
   const [vidoeUrl, setVideoUrl] = useState<string>("");
@@ -61,7 +64,12 @@ export default function ResetPassword() {
 
   return (
     <Layout>
-      <div className="relative w-full min-h-screen flex flex-col justify-end md:justify-center items-center">
+      <div
+        className={twMerge(
+          "relative w-full min-h-screen flex flex-col justify-end md:justify-center items-center",
+          isMobile ? "pb-20" : "pb-2"
+        )}
+      >
         <div className="w-full h-full flex flex-col justify-end md:justify-center items-center z-10">
           <div className="w-full h-fit flex flex-col justify-end md:justify-center items-center text-primary pb-5">
             <h3 className="text-center text-primary text-2xl mb-2">
@@ -129,17 +137,17 @@ export default function ResetPassword() {
         </div>
 
         <div className="absolute left-0 top-0 w-full h-full overflow-hidden z-0">
-          <div className="absolute -left-4 -top-4 -right-4 -bottom-4 filter blur-[5px]">
+          <div className="absolute -left-4 -top-4 -right-4 -bottom-4">
             <video
+              preload="auto"
               loop
               muted
               autoPlay
               playsInline
-              className="w-full h-full object-cover"
+              disablePictureInPicture
+              className="w-full h-full object-cover filter blur-[5px]"
               src={vidoeUrl}
-            >
-              <source src={vidoeUrl} type="video/mp4" />
-            </video>
+            />
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
@@ -16,12 +16,18 @@ import ThumbUp from "@/components/Icons/ThumbUp";
 import Setting from "@/components/Icons/Setting";
 import PoweredBy from "@/components/PoweredBy";
 import Info from "@/components/Icons/Info";
+import HeartBalloon from "@/components/Icons/HeartBalloon";
 
 import { useAuthValues } from "@/contexts/contextAuth";
 import { useSizeValues } from "@/contexts/contextSize";
 import { useShareValues } from "@/contexts/contextShareData";
 
-import { DEFAULT_LOGO_IMAGE, SIDEBARWIDTH_SM } from "@/libs/constants";
+import {
+  SYSTEM_TYPE,
+  DEFAULT_LOGO_IMAGE,
+  SIDEBARWIDTH_SM,
+  APP_TYPE,
+} from "@/libs/constants";
 
 type Props = {
   visible: boolean;
@@ -37,7 +43,11 @@ const Sidebar = ({ visible, setVisible }: Props) => {
     useSizeValues();
 
   const checkFullScreenPage = () => {
-    return router.pathname == "/music" || router.pathname == "/live-stream";
+    return (
+      router.pathname == "/music" ||
+      router.pathname == "/audio" ||
+      router.pathname == "/livestreams"
+    );
   };
 
   const goToLink = (link: string) => {
@@ -65,7 +75,8 @@ const Sidebar = ({ visible, setVisible }: Props) => {
           exit={{ width: 0 }}
           transition={{ duration: 0.3 }}
           className={twMerge(
-            "fixed left-0 top-0 bg-background h-fit md:h-screen rounded-br-3xl md:rounded-br-none pt-5 pb-0 md:py-5 overflow-x-hidden overflow-y-auto z-30"
+            "fixed left-0 top-0 bg-background h-fit md:h-screen rounded-br-3xl md:rounded-br-none pt-5 pb-0 md:py-5 overflow-x-hidden overflow-y-auto z-30",
+            isMobile ? "shadow-lg shadow-black" : "shadow-none"
           )}
           style={{ width: `${isMobile ? SIDEBARWIDTH_SM : sidebarWidth}px` }}
         >
@@ -124,18 +135,24 @@ const Sidebar = ({ visible, setVisible }: Props) => {
             onClick={() => goToLink("/about")}
           />
           <ButtonSidebar
-            active={router.pathname == "/music"}
+            active={
+              router.pathname.includes("music") ||
+              router.pathname.includes("audio") ||
+              router.pathname.includes("album")
+            }
             collapsed={isSidebarCollapsed}
             icon={<Music width={26} height={26} />}
-            label="Music"
-            onClick={() => goToLink("/music")}
+            label={SYSTEM_TYPE == APP_TYPE.CHURCH ? "Audio" : "Music"}
+            onClick={() =>
+              goToLink(SYSTEM_TYPE == APP_TYPE.CHURCH ? "/audio" : "/music")
+            }
           />
           <ButtonSidebar
-            active={router.pathname == "/live-stream"}
+            active={router.pathname.includes("livestream")}
             collapsed={isSidebarCollapsed}
             icon={<Mic width={24} height={24} />}
             label="Live Streams"
-            onClick={() => goToLink("/live-stream")}
+            onClick={() => goToLink("/livestreams")}
           />
           <ButtonSidebar
             active={router.pathname == "/gallery"}
@@ -145,12 +162,29 @@ const Sidebar = ({ visible, setVisible }: Props) => {
             onClick={() => goToLink("/gallery")}
           />
           <ButtonSidebar
-            active={router.pathname == "/fan-club"}
+            active={
+              router.pathname == "/fanclub" ||
+              router.pathname == "/community" ||
+              router.pathname.includes("post")
+            }
             collapsed={isSidebarCollapsed}
             icon={<ThumbUp width={24} height={24} />}
-            label="Fan Club"
-            onClick={() => goToLink("/fan-club")}
+            label={SYSTEM_TYPE == APP_TYPE.CHURCH ? "Community" : "Fan Club"}
+            onClick={() =>
+              goToLink(
+                SYSTEM_TYPE == APP_TYPE.CHURCH ? "/community" : "/fanclub"
+              )
+            }
           />
+          {SYSTEM_TYPE != APP_TYPE.TYPICAL && (
+            <ButtonSidebar
+              active={router.pathname == "/prayer-requests"}
+              collapsed={isSidebarCollapsed}
+              icon={<HeartBalloon width={22} height={22} />}
+              label="Prayer Requests"
+              onClick={() => goToLink("/prayer-requests")}
+            />
+          )}
           <ButtonSidebar
             active={router.pathname == "/settings"}
             collapsed={isSidebarCollapsed}

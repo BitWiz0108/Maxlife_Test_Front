@@ -1,42 +1,38 @@
-import { KeyboardEvent, useEffect, useState } from "react";
+import { KeyboardEvent, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { toast } from "react-toastify";
-import { getAuth, signInWithPopup, FacebookAuthProvider } from "firebase/auth";
+import { twMerge } from "tailwind-merge";
 
-import Input from "@/components/Input";
-import Layout from "@/components/Layout";
+import Google from "@/components/Icons/Google";
 import Profile from "@/components/Icons/Profile";
 import Lock from "@/components/Icons/Lock";
+import Layout from "@/components/Layout";
+import Input from "@/components/Input";
 import ButtonOutline from "@/components/ButtonOutline";
-import Facebook from "@/components/Icons/Facebook";
 import PoweredBy from "@/components/PoweredBy";
 import Switch from "@/components/Switch";
 import Loading from "@/components/Loading";
 
 import { useAuthValues } from "@/contexts/contextAuth";
 import { useShareValues } from "@/contexts/contextShareData";
+import { useSizeValues } from "@/contexts/contextSize";
 
 import useHomepage from "@/hooks/useHomepage";
 
 import {
   DEFAULT_LOGO_IMAGE,
-  OAUTH_PROVIDER,
-  TAG_ACCESS_TOKEN,
   TAG_PASSWORD,
-  TAG_REFRESH_TOKEN,
   TAG_USERNAME,
 } from "@/libs/constants";
-import { getErrorMessageForCode } from "@/libs/utils";
-
-const provider = new FacebookAuthProvider();
-const auth = getAuth();
 
 export default function Signin() {
+  const videoRef = useRef<HTMLVideoElement>(null);
   const router = useRouter();
   const { isLoading, isSignedIn, signIn, oAuthSignIn } = useAuthValues();
-  const { artist } = useShareValues();
+  const { artist, audioPlayer } = useShareValues();
+  const { isMobile } = useSizeValues();
   const { fetchPageContent } = useHomepage();
 
   const [username, setUsername] = useState<string>("");
@@ -66,7 +62,7 @@ export default function Signin() {
       window.localStorage.setItem(TAG_PASSWORD, "");
     }
 
-    const userId = username.replace(" ", "").toLowerCase().trim();
+    const userId = username.trim().replace(" ", "").toLowerCase().trim();
     signIn(userId, password).then((result) => {
       if (result) {
         router.push("/home");
@@ -74,51 +70,7 @@ export default function Signin() {
     });
   };
 
-  const onFacebookLogin = () => {
-    signInWithPopup(auth, provider)
-      .then((result) => {
-        const user = result.user;
-        const email = user.email ?? "";
-        const username = user.displayName ?? email;
-        const credential = FacebookAuthProvider.credentialFromResult(result);
-
-        if (credential) {
-          result.user.getIdToken().then((accessToken) => {
-            const refreshToken = result.user.refreshToken;
-            const email = result.user.email;
-            const uid = result.user.uid;
-
-            if (accessToken && email && uid) {
-              window.localStorage.setItem(TAG_ACCESS_TOKEN, accessToken);
-              window.localStorage.setItem(TAG_REFRESH_TOKEN, refreshToken);
-
-              let firstName = "";
-              let lastName = "";
-              if (username.includes(" ")) {
-                firstName = username.split(" ")[0].trim();
-                lastName = username.split(" ")[1].trim();
-              } else {
-                firstName = username;
-              }
-              const userId = username.replace(" ", "").toLowerCase().trim();
-              oAuthSignIn(
-                OAUTH_PROVIDER.FACEBOOK,
-                accessToken,
-                refreshToken
-              ).then((result) => {
-                if (result) {
-                  router.push("/home");
-                }
-              });
-            }
-          });
-        }
-      })
-      .catch((e) => {
-        console.log(e);
-        toast.error(getErrorMessageForCode(e.code));
-      });
-  };
+  const onGoogleSignin = () => {};
 
   useEffect(() => {
     if (isSignedIn) {
@@ -144,19 +96,45 @@ export default function Signin() {
   }, [isSignedIn, router]);
 
   useEffect(() => {
+    audioPlayer.pause();
+
     fetchPageContent().then((value) => {
       if (value) {
         setVideoUrl(value?.backgroundVideo);
-        setSignInDescription(value?.signInDescription);
+        setSignInDescription(
+          value?.signInDescription
+            ? value.signInDescription
+            : `Exclusive Music, Live Concerts & ${artist.artistName} Fan Community`
+        );
       }
     });
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    let interval: any = null;
+    if (videoRef && videoRef.current) {
+      interval = setInterval(() => {
+        videoRef.current?.play();
+      }, 1000);
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [videoRef]);
+
   return (
     <Layout>
-      <div className="relative w-full min-h-screen flex flex-col justify-end md:justify-center items-center">
+      <div
+        className={twMerge(
+          "relative w-full min-h-screen flex flex-col justify-end md:justify-center items-center",
+          isMobile ? "pb-20" : "pb-2"
+        )}
+      >
         <div className="w-full h-full flex flex-col justify-end md:justify-center items-center z-10">
           <div className="w-full h-fit flex flex-col justify-end md:justify-center items-center text-primary pb-5">
             <h3 className="text-center text-primary text-2xl mb-2">
@@ -216,13 +194,14 @@ export default function Signin() {
               <ButtonOutline label="LOGIN" onClick={() => onSignin()} />
             </div>
 
-            <div className="mb-5">
+            {/* TODO: Google & Apple OAuth */}
+            {/* <div className="mb-5">
               <ButtonOutline
-                label="Sign in with Facebook"
-                onClick={() => onFacebookLogin()}
-                icon={<Facebook width={20} height={20} />}
+                label="Sign in with Google"
+                onClick={() => onGoogleSignin()}
+                icon={<Google width={20} height={20} />}
               />
-            </div>
+            </div> */}
 
             <div className="w-full flex flex-row justify-center items-center space-x-3 mb-5">
               <Link href="/signup">
@@ -245,17 +224,18 @@ export default function Signin() {
         </div>
 
         <div className="absolute left-0 top-0 w-full h-full overflow-hidden z-0">
-          <div className="absolute -left-4 -top-4 -right-4 -bottom-4 filter blur-[5px]">
+          <div className="absolute -left-4 -top-4 -right-4 -bottom-4">
             <video
+              ref={videoRef}
+              preload="auto"
               loop
               muted
               autoPlay
               playsInline
-              className="w-full h-full object-cover"
+              disablePictureInPicture
+              className="w-full h-full object-cover filter blur-[5px]"
               src={vidoeUrl}
-            >
-              <source src={vidoeUrl} type="video/mp4" />
-            </video>
+            />
           </div>
         </div>
       </div>

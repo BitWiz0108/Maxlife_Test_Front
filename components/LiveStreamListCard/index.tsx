@@ -18,6 +18,7 @@ import {
   PLACEHOLDER_IMAGE,
   SITE_BASE_URL,
 } from "@/libs/constants";
+import { getUrlFormattedTitle } from "@/libs/utils";
 
 import { IStream } from "@/interfaces/IStream";
 import { DEFAULT_SHAREDATA } from "@/interfaces/IShareData";
@@ -42,7 +43,7 @@ const LiveStreamListCard = ({
   togglePlay,
   play,
 }: Props) => {
-  const { isTablet } = useSizeValues();
+  const { isTablet, height } = useSizeValues();
   const {
     setIsMetaVisible,
     setMetaData,
@@ -55,7 +56,7 @@ const LiveStreamListCard = ({
   const onShare = () => {
     setShareData({
       ...DEFAULT_SHAREDATA,
-      url: `${SITE_BASE_URL}/live-stream`,
+      url: `${SITE_BASE_URL}${getUrlFormattedTitle(livestream, "livestream")}`,
       title: livestream.title,
       subject: livestream.title,
       quote: livestream.title,
@@ -79,7 +80,8 @@ const LiveStreamListCard = ({
     >
       <div
         className={twJoin(
-          "relative w-full rounded-3xl overflow-hidden transition-all duration-300 cursor-pointer select-none border-4 mb-5",
+          "relative w-full rounded-3xl overflow-hidden transition-all duration-300 cursor-pointer select-none border-4",
+          height > 768 ? "mb-5" : "mb-2",
           playing ? "border-bluePrimary" : "border-transparent"
         )}
       >

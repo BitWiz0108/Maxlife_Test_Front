@@ -1,23 +1,4 @@
-export const getErrorMessageForCode = (code: String) => {
-  if (code === "auth/invalid-email" || code === "auth/missing-email") {
-    return "Please enter a valid email address.";
-  } else if (code === "auth/internal-error") {
-    return "Incorrect credentials, please try again.";
-  } else if (code === "auth/wrong-password") {
-    return "Incorrect password, please try again.";
-  } else if (code === "auth/user-not-found") {
-    return "No account linked to this email.";
-  } else if (code === "auth/email-already-in-use") {
-    return "There is already an account linked to this email.";
-  } else if (code === "auth/weak-password") {
-    return "Password must be at least 6 characters.";
-  } else if (code === "auth/admin-restricted-operation") {
-    return "Please enter your credentials.";
-  } else if (code === "auth/popup-closed-by-user") {
-    return "You closed popup.";
-  }
-  return code;
-};
+import { APP_TYPE, SYSTEM_TYPE } from "@/libs/constants";
 
 export const validateEmail = (email: string) => {
   return String(email)
@@ -74,4 +55,39 @@ export const generateRandomNumber = () => {
   const max = 100; // Maximum number you want to generate
   const randomNumber = Math.floor(Math.random() * (max - min + 1)) + min;
   return randomNumber;
+};
+
+export const getUrlFormattedTitle = (
+  asset: any,
+  type: "livestream" | "music" | "post"
+) => {
+  if (!asset) {
+    switch (type) {
+      case "livestream":
+        return "/livestreams";
+      case "music":
+        if (SYSTEM_TYPE == APP_TYPE.CHURCH) {
+          return "/audio";
+        }
+        return "/music";
+      case "post":
+        if (SYSTEM_TYPE == APP_TYPE.CHURCH) {
+          return "/community";
+        }
+        return "/fanclub";
+      default:
+        return "/home";
+    }
+  }
+  const title = asset.title as string;
+  switch (type) {
+    case "livestream":
+      return `/livestream/${title.trim().replaceAll(" ", "-").toLowerCase()}`;
+    case "music":
+      return `/album/${title.trim().replaceAll(" ", "-").toLowerCase()}`;
+    case "post":
+      return `/post/${title.trim().replaceAll(" ", "-").toLowerCase()}`;
+    default:
+      return "/home";
+  }
 };

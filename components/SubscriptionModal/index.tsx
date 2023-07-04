@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { toast } from "react-toastify";
+import { twMerge } from "tailwind-merge";
 import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import {
   usePayPalScriptReducer,
@@ -21,10 +22,17 @@ import Loading from "@/components/Loading";
 
 import { useAuthValues } from "@/contexts/contextAuth";
 import { useShareValues } from "@/contexts/contextShareData";
+import { useSizeValues } from "@/contexts/contextSize";
 
 import useTransaction from "@/hooks/useTransaction";
 
-import { ASSET_TYPE, PROVIDER, TRANSACTION_TYPE } from "@/libs/constants";
+import {
+  APP_TYPE,
+  ASSET_TYPE,
+  PROVIDER,
+  SYSTEM_TYPE,
+  TRANSACTION_TYPE,
+} from "@/libs/constants";
 import { createClientSecret } from "@/libs/stripe";
 import { createOrderId } from "@/libs/paypal";
 import { checkNumber } from "@/libs/utils";
@@ -34,13 +42,12 @@ import { DEFAULT_CURRENCY, ICurrency } from "@/interfaces/ICurrency";
 const SubscriptionModal = () => {
   const { isSignedIn } = useAuthValues();
   const {
+    audioPlayer,
     artist,
     isSubscriptionModalVisible,
     setIsSubscriptionModalVisible,
-    paypalClientId,
-    paypalClientSecret,
-    stripeSecretKey,
   } = useShareValues();
+  const { isMobile } = useSizeValues();
 
   const [provider, setProvider] = useState<PROVIDER>(PROVIDER.STRIPE);
   const [currencies, setCurrencies] = useState<Array<ICurrency>>([]);
@@ -96,11 +103,7 @@ const SubscriptionModal = () => {
 
     setIsWorking(true);
 
-    const clientSecret = await createClientSecret(
-      amount,
-      currency.code,
-      stripeSecretKey
-    );
+    const clientSecret = await createClientSecret(amount, currency.code);
 
     if (clientSecret) {
       const result = await stripe.confirmCardPayment(clientSecret, {
@@ -163,12 +166,7 @@ const SubscriptionModal = () => {
       throw new Error("Please enter amount correctly.");
     }
 
-    const orderId = await createOrderId(
-      amount,
-      currency.code,
-      paypalClientId,
-      paypalClientSecret
-    );
+    const orderId = await createOrderId(amount, currency.code);
     if (orderId) return orderId;
 
     throw new Error("Failed to create PayPal order. Please try again later.");
@@ -234,35 +232,53 @@ const SubscriptionModal = () => {
     <AnimatePresence>
       {isSubscriptionModalVisible && (
         <motion.div
-          className="fixed left-0 top-0 w-screen h-screen px-5 pt-5 pb-36 bg-[#000000aa] flex justify-center items-center z-50"
+          className={twMerge(
+            "fixed left-0 top-0 w-screen h-screen px-5 pt-5 bg-[#000000aa] flex justify-center items-center z-50",
+            isMobile ? "pb-[180px]" : "pb-28 lg:pb-36"
+          )}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
         >
           <div className="relative w-full md:w-[540px] max-h-full px-5 md:px-10 pt-10 pb-5 md:pb-10 bg-background rounded-lg overflow-x-hidden overflow-y-auto pr-5">
-            <div className="mb-8">
-              <h1 className="text-2xl text-center text-primary font-semibold">
-                Join The {artist.artistName} Fan Club
-              </h1>
-              <p className="text-sm text-center text-secondary">
-                In order to access exclusive content like this please pay $5 Per
-                month.
-                <br />
-                You can cancel at anytime, thank you for your support.
-              </p>
+            <div className="mb-4">
+              {artist.subscriptionDescription ? (
+                <div
+                  className="none-tailwind text-center"
+                  dangerouslySetInnerHTML={{
+                    __html: artist.subscriptionDescription,
+                  }}
+                ></div>
+              ) : (
+                <>
+                  <h1 className="text-2xl text-center text-primary font-semibold">
+                    Join The {artist.artistName}&nbsp;
+                    {SYSTEM_TYPE == APP_TYPE.CHURCH ? "Community" : "Fan Club"}
+                  </h1>
+                  <p className="text-sm text-center text-secondary">
+                    In order to access exclusive content like this please pay $5
+                    Per month.
+                    <br />
+                    You can cancel at anytime, thank you for your support.
+                  </p>
+                </>
+              )}
             </div>
 
             <div className="absolute top-5 right-5 text-primary cursor-pointer">
               <X
                 width={24}
                 height={24}
-                onClick={() => setIsSubscriptionModalVisible(false)}
+                onClick={() => {
+                  audioPlayer.play();
+                  setIsSubscriptionModalVisible(false);
+                }}
               />
             </div>
 
             <div className="w-full h-fit flex flex-col justify-start items-center">
-              <div className="w-full flex flex-row justify-center items-center space-x-2 mb-5">
+              <div className="w-full flex flex-row justify-center items-center space-x-2 mb-2">
                 <div className="w-full flex flex-col justify-start items-start space-y-1">
                   <label className="text-xs text-left text-primary">
                     Currency
@@ -302,7 +318,7 @@ const SubscriptionModal = () => {
                 </div>
               </div>
 
-              <div className="w-full p-4 border border-dashed border-third rounded-lg flex flex-col justify-start items-center space-y-5">
+              <div className="w-full p-2 border border-dashed border-third rounded-lg flex flex-col justify-start items-center space-y-2">
                 <div className="w-full flex justify-start items-center space-x-2 border-b border-gray-700">
                   <button
                     className={`w-full inline-flex justify-center items-center space-x-2 rounded-tl-md rounded-tr-md px-5 h-11 ${
@@ -310,7 +326,10 @@ const SubscriptionModal = () => {
                         ? "bg-third text-primary"
                         : "bg-transparent text-secondary hover:bg-third"
                     } transition-all duration-300`}
-                    onClick={() => setProvider(PROVIDER.STRIPE)}
+                    onClick={() => {
+                      audioPlayer.play();
+                      setProvider(PROVIDER.STRIPE);
+                    }}
                     disabled={isWorking}
                   >
                     <Image
@@ -329,6 +348,7 @@ const SubscriptionModal = () => {
                         : "bg-transparent text-secondary hover:bg-third"
                     } transition-all duration-300`}
                     onClick={() => {
+                      audioPlayer.play();
                       if (amount <= 0) {
                         toast.warn("Please enter amount correctly.");
                         return;

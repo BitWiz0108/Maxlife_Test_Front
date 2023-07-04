@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "react-toastify";
+import { twMerge } from "tailwind-merge";
 
 import Layout from "@/components/Layout";
 import Input from "@/components/Input";
@@ -23,14 +24,18 @@ import Loading from "@/components/Loading";
 
 import { useAuthValues } from "@/contexts/contextAuth";
 import { useShareValues } from "@/contexts/contextShareData";
+import { useSizeValues } from "@/contexts/contextSize";
 
 import useAbout from "@/hooks/useAbout";
 
 import { validateEmail } from "@/libs/utils";
 import {
+  APP_NAME,
+  APP_TYPE,
   ASSET_TYPE,
   IMAGE_BLUR_DATA_URL,
   PLACEHOLDER_IMAGE,
+  SYSTEM_TYPE,
 } from "@/libs/constants";
 
 export default function About() {
@@ -38,6 +43,7 @@ export default function About() {
   const { isSignedIn } = useAuthValues();
   const { isLoading, fetchAboutContent, sendEmail } = useAbout();
   const { artist, audioPlayer } = useShareValues();
+  const { isMobile } = useSizeValues();
 
   const [coverImage1, setCoverImage1] = useState<string>(PLACEHOLDER_IMAGE);
   const [coverImage2, setCoverImage2] = useState<string>(PLACEHOLDER_IMAGE);
@@ -83,12 +89,17 @@ export default function About() {
   const fullContent = (
     <>
       <div className="w-full h-screen overflow-x-hidden overflow-y-auto">
-        <div className="relative w-full pb-24 lg:pb-32 overflow-y-auto">
+        <div
+          className={twMerge(
+            "relative w-full overflow-y-auto",
+            isMobile ? "pb-[180px]" : "pb-24 lg:pb-32"
+          )}
+        >
           <div className="relative w-full flex flex-col xl:flex-row justify-center items-center">
-            <div className="w-full xl:w-1/2 h-screen min-h-[750px] justify-center items-center flex flex-col bg-gradient-to-br from-blue-900 to-cyan-500">
+            <div className="w-full xl:w-1/2 h-screen min-h-[750px] justify-center items-center flex flex-col bg-background">
               <div className="w-3/4 flex flex-col justify-center items-center">
-                <h1 className="text-5xl uppercase font-thin font-[100] text-center tracking-[-6px]">
-                  ABOUT THE ARTIST
+                <h1 className="text-5xl uppercase font-thin font-[100] text-center">
+                  {artist?.artistName ? artist.artistName : APP_NAME}
                 </h1>
                 <div className="relative w-full h-[500px] text-center my-5 pr-2 overflow-x-hidden overflow-y-auto">
                   <div
@@ -154,7 +165,7 @@ export default function About() {
                 priority
               />
             </div>
-            <div className="w-full xl:w-1/2 h-screen min-h-[750px] justify-center items-center flex flex-col bg-gradient-to-br from-cyan-500 to-blue-900 ">
+            <div className="w-full xl:w-1/2 h-screen min-h-[750px] justify-center items-center flex flex-col bg-background">
               <div className="w-3/4 flex flex-col justify-center items-center">
                 <h1 className="text-5xl uppercase font-thin font-[200] text-center tracking-[-6px]">
                   CONNECT
@@ -214,7 +225,9 @@ export default function About() {
 
       <AudioControl
         audioPlayer={audioPlayer}
-        onListView={() => router.push("/music")}
+        onListView={() =>
+          router.push(SYSTEM_TYPE == APP_TYPE.CHURCH ? "/audio" : "/music")
+        }
       />
 
       {isLoading && (

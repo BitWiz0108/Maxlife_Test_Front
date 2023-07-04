@@ -13,7 +13,7 @@ import { useAuthValues } from "@/contexts/contextAuth";
 import { useSizeValues } from "@/contexts/contextSize";
 import { useShareValues } from "@/contexts/contextShareData";
 
-import { DEFAULT_LOGO_IMAGE } from "@/libs/constants";
+import { SYSTEM_TYPE, DEFAULT_LOGO_IMAGE, APP_TYPE } from "@/libs/constants";
 
 type LayoutProps = {
   children: React.ReactNode;
@@ -29,6 +29,7 @@ const Layout = ({ children }: LayoutProps) => {
     width,
     sidebarWidth,
     contentWidth,
+    isHamburgerVisible,
     isSidebarVisible,
     setIsSidebarVisible,
     isTopbarVisible,
@@ -42,7 +43,7 @@ const Layout = ({ children }: LayoutProps) => {
   useEffect(() => {
     const timeout = setTimeout(() => {
       setFirstLoading(false);
-    }, 5000);
+    }, 3000);
 
     return () => clearTimeout(timeout);
 
@@ -71,15 +72,47 @@ const Layout = ({ children }: LayoutProps) => {
   }, [firstLoading]);
 
   useEffect(() => {
-    setIsSidebarVisible(width >= 768);
+    if (router.pathname.includes("livestream")) {
+      setIsSidebarVisible(false);
+    } else {
+      setIsSidebarVisible(width >= 768);
+    }
+
+    if (
+      SYSTEM_TYPE == APP_TYPE.TYPICAL &&
+      (router.pathname.includes("prayer-requests") ||
+        router.pathname == "/audio" ||
+        router.pathname == "/community")
+    ) {
+      router.push("/home");
+    }
+
+    if (
+      SYSTEM_TYPE == APP_TYPE.CHRISTIAN &&
+      (router.pathname == "/audio" || router.pathname == "/community")
+    ) {
+      router.push("/home");
+    }
+
+    if (
+      SYSTEM_TYPE == APP_TYPE.CHURCH &&
+      (router.pathname == "/music" || router.pathname == "/fanclub")
+    ) {
+      router.push("/home");
+    }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [width]);
+  }, [width, router.pathname]);
 
   return (
     <Elements stripe={stripePromise}>
       <PayPalScriptProvider options={{ "client-id": paypalClientId }}>
         <Head>
+          <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1, viewport-fit=cover"
+          />
+
           <link
             rel="icon"
             href={artist.logoImage ?? DEFAULT_LOGO_IMAGE}
@@ -154,17 +187,21 @@ const Layout = ({ children }: LayoutProps) => {
         </Head>
 
         <main className="relative w-full flex flex-row justify-start items-start">
-          <div className="flex absolute left-5 top-5 z-20">
-            <Menu
-              width={35}
-              height={35}
-              className="cursor-pointer text-primary hover:text-secondary transition-all duration-300"
-              onClick={() => {
-                setIsSidebarVisible(!isSidebarVisible);
-              }}
-            />
-          </div>
+          {isHamburgerVisible && (
+            <div className="flex absolute left-5 top-5 z-30">
+              <Menu
+                width={35}
+                height={35}
+                className="cursor-pointer text-primary hover:text-secondary transition-all duration-300"
+                onClick={() => {
+                  setIsSidebarVisible(!isSidebarVisible);
+                }}
+              />
+            </div>
+          )}
+
           <Topbar visible={isTopbarVisible} setVisible={setIsTopbarVisible} />
+
           <Sidebar
             visible={isSidebarVisible}
             setVisible={setIsSidebarVisible}

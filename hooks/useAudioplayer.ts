@@ -93,14 +93,6 @@ const useAudioPlayer = () => {
   };
 
   useEffect(() => {
-    if (router.pathname == "/live-stream") {
-      pause();
-    }
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router.pathname]);
-
-  useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume / 100;
     }
@@ -135,7 +127,10 @@ const useAudioPlayer = () => {
           audioRef.current.pause();
         }
 
-        if (playingQuality == MUSIC_QUALITY.LOW) {
+        if (
+          playingQuality == MUSIC_QUALITY.LOW &&
+          musics[playingIndex].musicFileCompressed
+        ) {
           audioRef.current = new Audio(
             musics[playingIndex].musicFileCompressed
           );
@@ -176,7 +171,10 @@ const useAudioPlayer = () => {
         audioRef.current.pause();
       }
 
-      if (playingQuality == MUSIC_QUALITY.LOW) {
+      if (
+        playingQuality == MUSIC_QUALITY.LOW &&
+        musics[playingIndex].musicFileCompressed
+      ) {
         audioRef.current = new Audio(musics[playingIndex].musicFileCompressed);
       } else {
         audioRef.current = new Audio(musics[playingIndex].musicFile);

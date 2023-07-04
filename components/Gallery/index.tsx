@@ -6,9 +6,11 @@ import { twMerge } from "tailwind-merge";
 import X from "@/components/Icons/X";
 import ButtonCircle from "@/components/ButtonCircle";
 import GalleryItem from "@/components/GalleryItem";
+import Loading from "@/components/Loading";
 
 import { useAuthValues } from "@/contexts/contextAuth";
 import { useShareValues } from "@/contexts/contextShareData";
+import { useSizeValues } from "@/contexts/contextSize";
 
 import useGallery from "@/hooks/useGallery";
 
@@ -21,10 +23,11 @@ import {
 import { IImage } from "@/interfaces/IGallery";
 
 const GalleryView = () => {
-  const carouselRef = useRef(null);
+  const carouselRef = useRef<Carousel>(null);
   const { isSignedIn } = useAuthValues();
-  const { fetchPageContent } = useGallery();
+  const { isLoading, fetchPageContent } = useGallery();
   const { audioPlayer } = useShareValues();
+  const { toggleFullscreen } = useSizeValues();
 
   const [activeSlide, setActiveSlide] = useState(0);
   const [images, setImages] = useState<Array<IImage>>([]);
@@ -62,6 +65,12 @@ const GalleryView = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSignedIn]);
 
+  useEffect(() => {
+    toggleFullscreen(isCarouselVisible);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCarouselVisible]);
+
   return (
     <div className="relative w-full flex flex-col justify-start items-center">
       <div className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
@@ -73,7 +82,6 @@ const GalleryView = () => {
               setActiveSlide(index + 2);
               setIsCarouselVisible(true);
               if (carouselRef && carouselRef.current) {
-                // @ts-ignore
                 carouselRef.current.goToSlide(index + 2);
               }
               if (image.type == FILE_TYPE.VIDEO) {
@@ -83,8 +91,7 @@ const GalleryView = () => {
                 );
                 for (let i = 0; i < videos.length; i++) {
                   if (image.video == videos[i].getAttribute("src")) {
-                    // @ts-ignore
-                    videos[i].play();
+                    (videos[i] as HTMLVideoElement).play();
                   }
                 }
               }
@@ -122,13 +129,12 @@ const GalleryView = () => {
             swipeable
             draggable
             arrows
-            beforeChange={(nextSlide, state) => {
+            beforeChange={() => {
               const videos = document.getElementsByClassName(
                 "carousel-video-player"
               );
               for (let i = 0; i < videos.length; i++) {
-                // @ts-ignore
-                videos[i].pause();
+                (videos[i] as HTMLVideoElement).pause();
               }
             }}
             afterChange={(prevSlide, state) => {
@@ -138,8 +144,7 @@ const GalleryView = () => {
                 "carousel-video-player"
               );
               for (let i = 0; i < videos.length; i++) {
-                // @ts-ignore
-                videos[i].pause();
+                (videos[i] as HTMLVideoElement).pause();
               }
               if (
                 images[state.currentSlide - 2] &&
@@ -150,8 +155,7 @@ const GalleryView = () => {
                     images[state.currentSlide - 2].video ==
                     videos[i].getAttribute("src")
                   ) {
-                    // @ts-ignore
-                    videos[i].play();
+                    (videos[i] as HTMLVideoElement).play();
                   }
                 }
               }
@@ -172,7 +176,7 @@ const GalleryView = () => {
                 >
                   {image.type == FILE_TYPE.IMAGE ? (
                     <Image
-                      className="relative w-full md:w-auto h-auto md:h-full object-cover md:object-none select-none pointer-events-none z-10"
+                      className="relative w-full md:w-auto h-auto md:h-full object-center select-none pointer-events-none z-10"
                       width={800}
                       height={800}
                       src={image.image ?? PLACEHOLDER_IMAGE}
@@ -187,11 +191,12 @@ const GalleryView = () => {
                       <video
                         controls
                         autoPlay={index == activeSlide - 2}
+                        playsInline
                         disablePictureInPicture
                         controlsList="nodownload nopictureinpicture noplaybackrate"
                         className="absolute inset-0 object-center w-full h-full rounded-md carousel-video-player"
                         src={image.video}
-                        onPlay={(event) => {
+                        onPlay={() => {
                           audioPlayer.pause();
                         }}
                       />
@@ -203,6 +208,12 @@ const GalleryView = () => {
           </Carousel>
         </div>
       </div>
+
+      {isLoading && (
+        <div className="loading">
+          <Loading width={64} height={64} />
+        </div>
+      )}
     </div>
   );
 };

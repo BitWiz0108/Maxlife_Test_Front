@@ -3,6 +3,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { toast } from "react-toastify";
 import moment from "moment";
+import Carousel from "react-multi-carousel";
+import { twMerge } from "tailwind-merge";
 
 import X from "@/components/Icons/X";
 import Loading from "@/components/Loading";
@@ -11,8 +13,10 @@ import Heart from "@/components/Icons/Heart";
 import Home from "@/components/Icons/Home";
 import ArrowLeft from "@/components/Icons/ArrowLeft";
 import ArrowRight from "@/components/Icons/ArrowRight";
+import VideoPlayer from "@/components/VideoPlayer";
 
 import { useAuthValues } from "@/contexts/contextAuth";
+import { useSizeValues } from "@/contexts/contextSize";
 
 import useFanclub from "@/hooks/useFanclub";
 
@@ -35,6 +39,7 @@ type Props = {
   favorite: Function;
   onPrev: Function;
   onNext: Function;
+  fullscreenView: Function;
 };
 
 const PostModal = ({
@@ -45,13 +50,34 @@ const PostModal = ({
   favorite,
   onPrev,
   onNext,
+  fullscreenView,
 }: Props) => {
+  const SINGLE_RESPONSIVENESS = {
+    superLargeDesktop: {
+      breakpoint: { max: 4000, min: 3000 },
+      items: 1,
+    },
+    desktop: {
+      breakpoint: { max: 3000, min: 1368 },
+      items: 1,
+    },
+    tablet: {
+      breakpoint: { max: 1368, min: 925 },
+      items: 1,
+    },
+    mobile: {
+      breakpoint: { max: 925, min: 0 },
+      items: 1,
+    },
+  };
   const { isSignedIn } = useAuthValues();
+  const { isMobile } = useSizeValues();
   const { isLoading, fetchPost, createReply, fetchReplies } = useFanclub();
 
   const [replyContent, setReplyContent] = useState<string>("");
   const [repliesPage, setRepliesPage] = useState<number>(1);
   const [repliesPageCount, setRepliesPageCount] = useState<number>(1);
+  const [lastPosX, setLastPosX] = useState<number>(0);
 
   const reply = () => {
     createReply(post.id, replyContent).then((value) => {
@@ -78,7 +104,7 @@ const PostModal = ({
       const postId = Number(post.id.toString());
       fetchPost(postId).then((value) => {
         if (value) {
-          setPost(value);
+          setPost({ ...post, ...value });
           setRepliesPageCount(1);
           setRepliesPage(1);
         }
@@ -92,7 +118,10 @@ const PostModal = ({
     <AnimatePresence>
       {visible && (
         <motion.div
-          className="fixed left-0 top-0 w-screen h-screen px-5 pt-5 pb-36 bg-[#000000aa] flex justify-center items-center z-50"
+          className={twMerge(
+            "fixed left-0 top-0 w-screen h-screen px-5 pt-5 bg-[#000000aa] flex justify-center items-center z-50",
+            isMobile ? "pb-[180px]" : "pb-28 lg:pb-36"
+          )}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -124,30 +153,57 @@ const PostModal = ({
                     </span>
                   </button>
 
-                  {post.type == FILE_TYPE.IMAGE ? (
-                    <Image
-                      className="object-center w-full rounded-md"
-                      src={post.image ?? PLACEHOLDER_IMAGE}
-                      width={1600}
-                      height={900}
-                      alt=""
-                      placeholder="blur"
-                      blurDataURL={IMAGE_BLUR_DATA_URL}
-                      priority
-                    />
-                  ) : (
-                    <div className="relative w-full pb-[56.25%] z-0">
-                      <video
-                        controls
-                        autoPlay
-                        playsInline
-                        controlsList="nodownload nopictureinpicture noplaybackrate"
-                        disablePictureInPicture
-                        className="absolute inset-0 object-center w-full h-full rounded-md"
-                        src={post.video}
-                      />
-                    </div>
-                  )}
+                  <div className="relative w-full">
+                    <Carousel
+                      ssr
+                      partialVisible
+                      autoPlay={false}
+                      responsive={SINGLE_RESPONSIVENESS}
+                      className="w-full"
+                      infinite
+                      swipeable
+                      draggable
+                      arrows={post.files.length > 1}
+                    >
+                      {post.files.map((file, indexFile) => {
+                        return (
+                          <div
+                            key={indexFile}
+                            className="w-full relative pb-[56.25%] hover:cursor-pointer rounded-md overflow-hidden"
+                            onMouseDown={(e) => setLastPosX(e.screenX)}
+                            onMouseUp={(e) => {
+                              if (Math.abs(e.screenX - lastPosX) < 30) {
+                                fullscreenView(indexFile);
+                              }
+                            }}
+                          >
+                            {file.type == FILE_TYPE.IMAGE ? (
+                              <Image
+                                className="absolute inset-0 object-cover object-center w-full h-full rounded-md pointer-events-none"
+                                src={file.fileCompressed ?? PLACEHOLDER_IMAGE}
+                                width={1600}
+                                height={900}
+                                alt=""
+                                placeholder="blur"
+                                blurDataURL={IMAGE_BLUR_DATA_URL}
+                                priority
+                              />
+                            ) : (
+                              <VideoPlayer
+                                loop
+                                muted
+                                autoPlay
+                                playsInline
+                                disablePictureInPicture
+                                className={`absolute inset-0 object-cover object-center w-full h-full rounded-md pointer-events-none`}
+                                src={file.fileCompressed}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </Carousel>
+                  </div>
                 </div>
               </div>
             </div>

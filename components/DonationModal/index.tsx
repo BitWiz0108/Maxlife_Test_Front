@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { toast } from "react-toastify";
+import { twMerge } from "tailwind-merge";
 import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import {
   usePayPalScriptReducer,
@@ -21,10 +22,17 @@ import Loading from "@/components/Loading";
 
 import { useAuthValues } from "@/contexts/contextAuth";
 import { useShareValues } from "@/contexts/contextShareData";
+import { useSizeValues } from "@/contexts/contextSize";
 
 import useTransaction from "@/hooks/useTransaction";
 
-import { ASSET_TYPE, PROVIDER, TRANSACTION_TYPE } from "@/libs/constants";
+import {
+  APP_TYPE,
+  ASSET_TYPE,
+  PROVIDER,
+  SYSTEM_TYPE,
+  TRANSACTION_TYPE,
+} from "@/libs/constants";
 import { createClientSecret } from "@/libs/stripe";
 import { createOrderId } from "@/libs/paypal";
 import { checkNumber } from "@/libs/utils";
@@ -43,13 +51,9 @@ const DonationModal = ({
   livestreamId = null,
 }: Props) => {
   const { isSignedIn } = useAuthValues();
-  const {
-    isDonationModalVisible,
-    setIsDonationModalVisible,
-    paypalClientId,
-    paypalClientSecret,
-    stripeSecretKey,
-  } = useShareValues();
+  const { isDonationModalVisible, setIsDonationModalVisible, artist } =
+    useShareValues();
+  const { isMobile } = useSizeValues();
 
   const [provider, setProvider] = useState<PROVIDER>(PROVIDER.STRIPE);
   const [currencies, setCurrencies] = useState<Array<ICurrency>>([]);
@@ -105,11 +109,7 @@ const DonationModal = ({
 
     setIsWorking(true);
 
-    const clientSecret = await createClientSecret(
-      amount,
-      currency.code,
-      stripeSecretKey
-    );
+    const clientSecret = await createClientSecret(amount, currency.code);
 
     if (clientSecret) {
       const result = await stripe.confirmCardPayment(clientSecret, {
@@ -163,12 +163,7 @@ const DonationModal = ({
       throw new Error("Please enter amount correctly.");
     }
 
-    const orderId = await createOrderId(
-      amount,
-      currency.code,
-      paypalClientId,
-      paypalClientSecret
-    );
+    const orderId = await createOrderId(amount, currency.code);
     if (orderId) return orderId;
 
     throw new Error("Failed to create PayPal order. Please try again later.");
@@ -228,15 +223,22 @@ const DonationModal = ({
     <AnimatePresence>
       {isDonationModalVisible && (
         <motion.div
-          className="fixed left-0 top-0 w-screen h-screen px-5 pt-5 pb-36 bg-[#000000aa] flex justify-center items-center z-50"
+          className={twMerge(
+            "fixed left-0 top-0 w-screen h-screen px-5 pt-5 bg-[#000000aa] flex justify-center items-center z-50",
+            isMobile ? "pb-[180px]" : "pb-28 lg:pb-36"
+          )}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
         >
           <div className="relative w-full md:w-[540px] max-h-full px-5 md:px-10 pt-20 pb-5 md:pb-10 bg-background rounded-lg overflow-x-hidden overflow-y-auto pr-5">
-            <h1 className="absolute top-5 left-1/2 -translate-x-1/2 text-2xl text-center text-primary font-semibold">
+            <h1 className="absolute top-8 left-1/2 -translate-x-1/2 text-2xl text-center text-primary font-semibold">
               Donation
+            </h1>
+            <h1 className="text-center text-primary font-semibold mb-2">
+              The {artist.artistName}&nbsp;
+              {SYSTEM_TYPE == APP_TYPE.CHURCH ? "Community" : "Fan Club"}
             </h1>
 
             <div className="absolute top-5 right-5 text-primary cursor-pointer">

@@ -3,7 +3,6 @@ import {
   TwitterShareButton,
   LinkedinShareButton,
   EmailShareButton,
-  InstapaperShareButton,
   FacebookIcon,
   TwitterIcon,
   LinkedinIcon,
@@ -12,10 +11,12 @@ import {
 import { useRouter } from "next/router";
 import { toast } from "react-toastify";
 import { AnimatePresence, motion } from "framer-motion";
+import { twMerge } from "tailwind-merge";
 
 import X from "@/components/Icons/X";
 
 import { useShareValues } from "@/contexts/contextShareData";
+import { useSizeValues } from "@/contexts/contextSize";
 
 import { SITE_BASE_URL } from "@/libs/constants";
 
@@ -25,12 +26,16 @@ const ShareModal = () => {
 
   const { isShareModalVisible, setIsShareModalVisible, shareData } =
     useShareValues();
+  const { isMobile } = useSizeValues();
 
   return (
     <AnimatePresence>
       {isShareModalVisible && (
         <motion.div
-          className="fixed left-0 top-0 w-screen h-screen p-5 bg-[#000000aa] flex justify-center items-center z-50"
+          className={twMerge(
+            "fixed left-0 top-0 w-screen h-screen p-5 bg-[#000000aa] flex justify-center items-center z-50",
+            isMobile ? "pb-[180px]" : "pb-28 lg:pb-36"
+          )}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -85,9 +90,19 @@ const ShareModal = () => {
                 <EmailIcon borderRadius={8} size={36} />
               </EmailShareButton>
             </div>
-            <div className="w-4/5 flex flex-row bg-white mt-4 rounded-xl">
-              <p className="relative p-1 text-sm bg-white text-bluePrimary underline rounded-xl" >{currentUrl}</p>
-              <p className="absolute p-1 right-14 bg-bluePrimary text-sm text-white cursor-pointer rounded-xl" onClick={() => { navigator.clipboard.writeText(currentUrl); toast.success("Link copied to the clipboard.") }}> Copy Link </p>
+            <div className="relative w-full flex flex-row bg-white mt-4 rounded-xl">
+              <p className="w-full relative p-1 text-sm bg-white text-bluePrimary underline rounded-xl truncate">
+                {shareData.url ? shareData.url : currentUrl}
+              </p>
+              <p
+                className="absolute p-1 -right-1 bg-bluePrimary text-sm text-white cursor-pointer rounded-xl"
+                onClick={() => {
+                  navigator.clipboard.writeText(shareData.url ? shareData.url : currentUrl);
+                  toast.success("Link copied to the clipboard.");
+                }}
+              >
+                Copy Link
+              </p>
             </div>
           </div>
         </motion.div>

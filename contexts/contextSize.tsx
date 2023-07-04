@@ -2,6 +2,7 @@ import { createContext, useContext, ReactNode } from "react";
 import PropTypes from "prop-types";
 
 import useDeviceSize from "@/hooks/useDeviceSize";
+import { BROWSER_TYPE } from "@/libs/constants";
 
 export const SizeContext = createContext({
   width: 0,
@@ -10,12 +11,17 @@ export const SizeContext = createContext({
   sidebarWidth: 0,
   isMobile: false,
   isTablet: false,
+  isHamburgerVisible: true,
+  setIsHamburgerVisible: (flag: boolean) => {},
   isSidebarCollapsed: false,
   setIsSidebarCollapsed: (flag: boolean) => {},
   isSidebarVisible: false,
   setIsSidebarVisible: (flag: boolean) => {},
   isTopbarVisible: false,
   setIsTopbarVisible: (flag: boolean) => {},
+  toggleFullscreen: (flag: boolean) => {},
+  browserType: BROWSER_TYPE.OTHER as BROWSER_TYPE,
+  setBrowserType: (type: BROWSER_TYPE) => {},
 });
 
 export const SizeProvider = ({ children }: { children: ReactNode }) => {
@@ -26,12 +32,17 @@ export const SizeProvider = ({ children }: { children: ReactNode }) => {
     sidebarWidth,
     isMobile,
     isTablet,
+    isHamburgerVisible,
+    setIsHamburgerVisible,
     isSidebarCollapsed,
     setIsSidebarCollapsed,
     isSidebarVisible,
     setIsSidebarVisible,
     isTopbarVisible,
     setIsTopbarVisible,
+    toggleFullscreen,
+    browserType,
+    setBrowserType,
   } = useDeviceSize();
 
   return (
@@ -43,12 +54,17 @@ export const SizeProvider = ({ children }: { children: ReactNode }) => {
         sidebarWidth,
         isMobile,
         isTablet,
+        isHamburgerVisible,
+        setIsHamburgerVisible,
         isSidebarCollapsed,
         setIsSidebarCollapsed,
         isSidebarVisible,
         setIsSidebarVisible,
         isTopbarVisible,
         setIsTopbarVisible,
+        toggleFullscreen,
+        browserType,
+        setBrowserType,
       }}
     >
       {children}
